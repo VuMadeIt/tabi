@@ -199,5 +199,6 @@ def _default_line(g: GroupState) -> str:
         who = ", ".join(g.blockers[:2])
         need = {"where": "where to go", "when": "their dates", "budget": "a budget",
                 "commit": "if they're in"}.get(g.stage, "")
-        return f"{who} still hasn't said {need}…" if need else f"waiting on {who}…"
+        verb = "haven't" if len(g.blockers) > 1 else "hasn't"
+        return f"{who} still {verb} said {need}…" if need else f"waiting on {who}…"
     return "keep talking, i'm listening 🍣"
