@@ -102,7 +102,7 @@ def market(city: str, checkin: str, checkout: str, guests: int, group_id: str) -
         return _offline_market(city, checkin, now)
     res = _search(city, checkin, checkout, guests, group_id)
     if res is None:
-        return None
+        return _offline_market(city, checkin, now)
     prices = [p for p in (_cheapest(r)[1] for r in res) if p]
     return {"price": float(median(prices)) if prices else 0.0, "count": len(res), "ts": now, "live": True}
 
