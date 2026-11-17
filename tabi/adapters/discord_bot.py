@@ -40,7 +40,7 @@ class BudgetModal(discord.ui.Modal, title="Your budget (per person)"):
             await it.response.send_message("that doesn't look like a budget 🥲 try `1500`", ephemeral=True)
             return
         await it.response.send_message(f"saved: ${val:,} 💸 (only the lowest budget is shown to the group)", ephemeral=True)
-        await self.bot.run(it, self.bot.engine.set_fact, gid(it.channel_id), str(it.user.id),
+        await self.bot.call(it, self.bot.engine.set_fact, gid(it.channel_id), str(it.user.id),
                            it.user.display_name, budget=val)
 
 
@@ -57,7 +57,7 @@ class DatesModal(discord.ui.Modal, title="When are you free?"):
             await it.response.send_message("couldn't read those dates 📅 try `march 10-17`", ephemeral=True)
             return
         await it.response.send_message(f"saved: {d[0]} → {d[1]} 📅", ephemeral=True)
-        await self.bot.run(it, self.bot.engine.set_fact, gid(it.channel_id), str(it.user.id),
+        await self.bot.call(it, self.bot.engine.set_fact, gid(it.channel_id), str(it.user.id),
                            it.user.display_name, dates=d)
 
 
@@ -72,7 +72,7 @@ class TabiBot(discord.Client):
         self._register()
 
     # ─── helpers ────────────────────────────────────────────────────────────
-    async def run(self, it: discord.Interaction | None, fn, group_id: str, *args, **kw) -> list[Action]:
+    async def call(self, it: discord.Interaction | None, fn, group_id: str, *args, **kw) -> list[Action]:
         actions = await asyncio.to_thread(fn, group_id, *args, **kw)
         eph = [a for a in actions if a.kind == "ephemeral"]
         if it is not None:
@@ -105,7 +105,7 @@ class TabiBot(discord.Client):
             ("anywhere", "any"), ("japan", "japan"), ("bachelorette", "bachelorette"), ("grad trip", "grad"))])
         async def start(it: discord.Interaction, mode: app_commands.Choice[str] | None = None):
             await it.response.send_message("🍣 hatching…", ephemeral=True)
-            await self.run(None, self.engine.start, gid(it.channel_id), str(it.channel_id),
+            await self.call(None, self.engine.start, gid(it.channel_id), str(it.channel_id),
                            str(it.guild_id or ""), mode.value if mode else "any")
 
         @grp.command(name="status", description="Show Tabi and the plan")
@@ -117,14 +117,14 @@ class TabiBot(discord.Client):
         async def where(it: discord.Interaction, city: str):
             if await self._need_group(it):
                 await it.response.send_message(f"voted {city} 🗺️", ephemeral=True)
-                await self.run(it, self.engine.set_fact, gid(it.channel_id), str(it.user.id),
+                await self.call(it, self.engine.set_fact, gid(it.channel_id), str(it.user.id),
                                it.user.display_name, city=city.strip()[:60])
 
         @grp.command(name="budget", description="Set your max budget (per person, USD)")
         async def budget(it: discord.Interaction, amount: app_commands.Range[int, 50, 50000]):
             if await self._need_group(it):
                 await it.response.send_message(f"saved: ${amount:,} 💸", ephemeral=True)
-                await self.run(it, self.engine.set_fact, gid(it.channel_id), str(it.user.id),
+                await self.call(it, self.engine.set_fact, gid(it.channel_id), str(it.user.id),
                                it.user.display_name, budget=amount)
 
         @grp.command(name="dates", description="Tell Tabi when you're free")
@@ -136,27 +136,27 @@ class TabiBot(discord.Client):
         async def in_(it: discord.Interaction):
             if await self._need_group(it):
                 await self._ack(it)
-                await self.run(it, self.engine.set_fact, gid(it.channel_id), str(it.user.id),
+                await self.call(it, self.engine.set_fact, gid(it.channel_id), str(it.user.id),
                                it.user.display_name, committed=True)
 
         @grp.command(name="out", description="I can't make it")
         async def out(it: discord.Interaction):
             if await self._need_group(it):
                 await self._ack(it)
-                await self.run(it, self.engine.set_fact, gid(it.channel_id), str(it.user.id),
+                await self.call(it, self.engine.set_fact, gid(it.channel_id), str(it.user.id),
                                it.user.display_name, committed=False)
 
         @grp.command(name="booked", description="Mark the trip as booked 🎉")
         async def booked(it: discord.Interaction):
             if await self._need_group(it):
                 await self._ack(it)
-                await self.run(it, self.engine.book, gid(it.channel_id), str(it.user.id))
+                await self.call(it, self.engine.book, gid(it.channel_id), str(it.user.id))
 
         @grp.command(name="reset", description="Start a fresh trip in this channel")
         async def reset(it: discord.Interaction):
             if await self._need_group(it):
                 await it.response.send_message("fresh start 🍣", ephemeral=True)
-                await self.run(None, self.engine.reset, gid(it.channel_id))
+                await self.call(None, self.engine.reset, gid(it.channel_id))
 
         @grp.command(name="stop", description="Put Tabi to sleep in this channel")
         async def stop(it: discord.Interaction):
@@ -238,17 +238,17 @@ class TabiBot(discord.Client):
             await it.response.send_message(**await self._status_payload(it.channel_id))
         elif action in ("in", "out"):
             await it.response.send_message("you're in! 🎉" if action == "in" else "noted 💔", ephemeral=True)
-            await self.run(it, self.engine.set_fact, g_id, uid, name, committed=action == "in")
+            await self.call(it, self.engine.set_fact, g_id, uid, name, committed=action == "in")
         elif action == "vote":
             await self._ack(it)
-            await self.run(it, self.engine.vote_hotel, g_id, uid, name, int(cid.split(":")[2]))
+            await self.call(it, self.engine.vote_hotel, g_id, uid, name, int(cid.split(":")[2]))
         elif action == "book":
             await self._ack(it)
-            await self.run(it, self.engine.book, g_id, uid)
+            await self.call(it, self.engine.book, g_id, uid)
         elif action == "revive":
             await self._ack(it)
             await asyncio.to_thread(self.engine.click, g_id, "revive")
-            await self.run(it, self.engine.revive, g_id, uid)
+            await self.call(it, self.engine.revive, g_id, uid)
 
     async def _ticker(self) -> None:
         await self.wait_until_ready()
