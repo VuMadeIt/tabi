@@ -173,7 +173,7 @@ class Engine:
     def book(self, group_id: str, user_id: str) -> list[Action]:
         def fn(g: GroupState):
             committed = [m for m in g.members.values() if m.committed]
-            link_out = g.stage == "hotel" and not any(
+            link_out = g.stage == "hotel" and bool(g.plan.options) and not any(
                 o.get("price_total") is not None for o in g.plan.options)
             if (g.stage != "commit" and not link_out) or len(committed) < 2:
                 return [Action("ephemeral", "not yet! need a hotel + at least 2 people tapping I'M IN")]

@@ -156,7 +156,7 @@ def render(g: GroupState, deltas: Optional[dict] = None, line: str = "") -> byte
         card.alpha_composite(spr, (sx0 + 25, sy1 - 250 + 6))
     tag = (g.plan.city or "somewhere?").upper()
     if g.booked:
-        tag += " ✓"
+        tag += " · BOOKED"
     if not g.pet.alive:
         tag = "R.I.P."
     f = _font(22, "Bold")
