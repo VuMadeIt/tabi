@@ -31,6 +31,8 @@ def test_parse_dates():
 def test_parse_city_and_commit():
     assert parse.find_city("down for tokyo probably") == "Tokyo"
     assert parse.find_city("vegas baby") == "Las Vegas"
+    assert parse.find_city("maybe lisbon or barcelona") is None
+    assert parse.has_date_hint("march-ish") and not parse.has_date_hint("barcelona!!")
     assert parse.commitment("ok i'm in") is True
     assert parse.commitment("sorry i'm out") is False
 

@@ -39,13 +39,26 @@ def city_list(mode: str) -> list[str]:
 
 
 def find_city(text: str, mode: str = "any") -> Optional[str]:
-    best = None
+    hits: dict[str, int] = {}
     for c in city_list(mode):
         m = re.search(rf"(?<![\w]){re.escape(c)}(?![\w])", text, re.I)
         if m and (c not in ("LA",) or m.group(0) == "LA"):
-            if best is None or m.start() < best[0]:
-                best = (m.start(), ALIASES.get(c.lower(), c))
-    return best[1] if best else None
+            name = ALIASES.get(c.lower(), c)
+            hits[name] = min(m.start(), hits.get(name, m.start()))
+    if not hits:
+        return None
+    if len(hits) > 1 and re.search(r"\b(or|vs|versus|maybe)\b|\?", text, re.I):
+        return None  # still deciding between options
+    return min(hits, key=hits.get)
+
+
+_DATE_HINT = re.compile(r"\d|\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\b|"
+                        r"\b(week|weekend|reading|spring|summer|fall|winter|break|christmas|"
+                        r"thanksgiving|easter|new year)\b", re.I)
+
+
+def has_date_hint(text: str) -> bool:
+    return bool(_DATE_HINT.search(text))
 
 
 def find_budget(text: str) -> Optional[int]:

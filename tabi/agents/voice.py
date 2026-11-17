@@ -12,6 +12,7 @@ guard    length cap, no mass pings, no repeats, attach card/buttons
 from __future__ import annotations
 
 import random
+import re
 import time
 from datetime import date
 from typing import Any, Optional, TypedDict
@@ -141,6 +142,9 @@ def guard(s: VoiceState) -> VoiceState:
     line = " ".join(str(line).split())
     for bad in ("@everyone", "@here"):
         line = line.replace(bad, bad[1:])
+    if len(line) > 200:
+        parts = re.split(r"(?<=[.!?…])\s+", line)
+        line = " ".join(parts[:2])
     if len(line) > 300:
         line = line[:297].rstrip() + "…"
     if line in g.said and intent not in ("hotels", "booked", "dead", "hello"):

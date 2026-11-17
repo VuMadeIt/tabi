@@ -13,6 +13,7 @@ track      stage machine, blockers, progress events (which heal Mood)
 from __future__ import annotations
 
 import json
+import re
 import time
 from collections import Counter
 from datetime import date
@@ -58,6 +59,14 @@ def _apply_facts(m: Member, f: dict) -> None:
         m.committed = bool(f["committed"])
 
 
+def _sane_window(start, end) -> bool:
+    try:
+        a, b = date.fromisoformat(str(start)), date.fromisoformat(str(end))
+    except ValueError:
+        return False
+    return date.today() <= a < b and (b - a).days <= 60
+
+
 # ─── nodes ──────────────────────────────────────────────────────────────────
 def read(s: PlannerState) -> PlannerState:
     g, msg = s["g"], s.get("msg")
@@ -83,7 +92,8 @@ def extract(s: PlannerState) -> PlannerState:
     known = {m.name: {"budget": m.budget, "date_start": m.date_start, "date_end": m.date_end,
                       "city": m.city, "committed": m.committed}
              for m in g.members.values() if m.messages}
-    lines = "\n".join(f"{m.name}: {m.text[:300]}" for m in g.buffer)
+    batch = list(g.buffer)
+    lines = "\n".join(f"{m.name}: {m.text[:300]}" for m in batch)
     prompt = (f"TODAY: {date.today().isoformat()}\nMODE: {g.mode}\n"
               f"KNOWN: {json.dumps(known, separators=(',', ':'))}\nNEW LINES:\n{lines}")
     out = s["llm"].json(g.group_id, EXTRACT_SYSTEM, prompt, max_tokens=350)
@@ -92,10 +102,23 @@ def extract(s: PlannerState) -> PlannerState:
     s["extracted"] = True
     if not out:
         return s
+    said: dict[str, str] = {}
+    for b in batch:
+        said[b.name] = said.get(b.name, "") + " " + b.text
     for name, f in (out.get("people") or {}).items():
         m = g.member_by_name(name)
-        if m and isinstance(f, dict):
-            _apply_facts(m, {k: v for k, v in f.items() if v not in (None, "", [])})
+        if not (m and isinstance(f, dict)):
+            continue
+        f = {k: v for k, v in f.items() if v not in (None, "", [])}
+        text = said.get(m.name, "")
+        # Small models hallucinate; only accept facts this person actually hinted at.
+        if not (parse.has_date_hint(text) and _sane_window(f.get("date_start"), f.get("date_end"))):
+            f.pop("date_start", None), f.pop("date_end", None)
+        if f.get("city") and str(f["city"]).lower().split(",")[0] not in text.lower():
+            f.pop("city")
+        if f.get("budget") and not re.search(r"\d", text):
+            f.pop("budget")
+        _apply_facts(m, f)
     if out.get("consensus_city") and not g.plan.city:
         g.plan.notes["consensus_city"] = str(out["consensus_city"])
     return s
