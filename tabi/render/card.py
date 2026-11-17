@@ -18,7 +18,7 @@ from tabi.core import health
 from tabi.core.models import GroupState
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-SPRITES = os.path.join(ROOT, "assets", "sticker")
+SPRITES = os.path.join(ROOT, "assets", os.environ.get("TABI_SPRITES", "kawaii"))
 FONT = os.path.join(ROOT, "assets", "fonts", "Fredoka.ttf")
 
 W, H = 960, 400
@@ -151,7 +151,15 @@ def _blocker(card: Image.Image, x: int, y: int, text: str) -> None:
     card.alpha_composite(tag.rotate(-2, expand=True, resample=Image.BICUBIC), (x, y))
 
 
-def render(g: GroupState, deltas: Optional[dict] = None, title: Optional[str] = None) -> bytes:
+def render(g: GroupState, deltas: Optional[dict] = None, line: str = "",
+           title: Optional[str] = None) -> bytes:
+    if os.environ.get("TABI_CARD", "pixel") == "pixel":
+        from tabi.render import pixel
+        return pixel.render(g, deltas, line)
+    return render_paper(g, deltas, title)
+
+
+def render_paper(g: GroupState, deltas: Optional[dict] = None, title: Optional[str] = None) -> bytes:
     deltas = deltas or {}
     card = _paper().convert("RGBA").copy()
     d = ImageDraw.Draw(card)

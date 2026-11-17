@@ -129,6 +129,12 @@ def test_card_renders_every_state():
     for phys in (90, 50, 10):
         for ment in (90, 60, 45, 10):
             g.pet.physical, g.pet.mental = phys, ment
-            png = card.render(g, {"body": -5})
+            png = card.render(g, {"body": -5}, "hotels vote below!! 🏨")
             assert png[:8] == b"\x89PNG\r\n\x1a\n"
             assert card._sprite(card.sprite_name(phys, ment), 64) is not None
+
+
+def test_paper_card_style_still_renders(monkeypatch):
+    monkeypatch.setenv("TABI_CARD", "paper")
+    g = GroupState(group_id="y")
+    assert card.render(g)[:4] == b"\x89PNG"

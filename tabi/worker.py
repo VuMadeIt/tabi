@@ -19,7 +19,7 @@ def deliver(engine: Engine, sender: RestSender, group_id: str, actions: list[Act
     for a in actions:
         if a.kind == "ephemeral":
             continue
-        png = card.render(g, a.deltas) if a.card else None
+        png = card.render(g, a.deltas, a.text) if a.card else None
         sender.send(g.channel_id, a, png)
 
 

@@ -21,8 +21,11 @@ ENDPOINT = "https://api.stay22.com/v2/accommodations"
 _last_call = 0.0
 
 
+_denied_until = 0.0
+
+
 def live() -> bool:
-    return bool(os.environ.get("STAY22_API_KEY", "").strip())
+    return bool(os.environ.get("STAY22_API_KEY", "").strip()) and time.time() >= _denied_until
 
 
 def _tag(group_id: str) -> str:
@@ -30,7 +33,7 @@ def _tag(group_id: str) -> str:
 
 
 def _search(city: str, checkin: str, checkout: str, guests: int, group_id: str) -> Optional[list[dict]]:
-    global _last_call
+    global _last_call, _denied_until
     wait = 0.5 - (time.time() - _last_call)
     if wait > 0:
         time.sleep(wait)
@@ -43,6 +46,11 @@ def _search(city: str, checkin: str, checkout: str, guests: int, group_id: str) 
     try:
         r = requests.get(ENDPOINT, params=params, timeout=15,
                          headers={"X-API-KEY": os.environ["STAY22_API_KEY"], "Accept": "application/json"})
+        if r.status_code in (401, 403):
+            # Key missing/not enabled for this API: stop hammering, use the offline market for an hour.
+            _denied_until = time.time() + 3600
+            log.warning("stay22 %s: %s", r.status_code, r.text[:200])
+            return None
         r.raise_for_status()
         return r.json().get("results") or []
     except Exception as e:

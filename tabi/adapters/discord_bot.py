@@ -180,7 +180,7 @@ class TabiBot(discord.Client):
         going = [m.name for m in g.members.values() if m.committed]
         if going:
             bits.append("going: " + ", ".join(going))
-        png = await asyncio.to_thread(card.render, g)
+        png = await asyncio.to_thread(card.render, g, None, "")
         view = discord.ui.View()
         for k in ("in", "budget", "dates"):
             b = BUTTONS[k]
