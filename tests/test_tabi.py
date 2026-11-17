@@ -186,3 +186,21 @@ def test_withdrawal_that_unblocks_hotels_still_posts_choices(engine):
     acts = engine.set_fact(gid, "bob", "bob", committed=False)
     g = engine.load(gid)
     assert g.stage == "hotel" and g.plan.options and any(a.hotels for a in acts)
+
+
+def test_worker_survives_queue_errors(engine, monkeypatch):
+    import threading
+    from tabi import worker
+    stop, calls = threading.Event(), []
+
+    def pop(timeout=1.0):
+        calls.append(1)
+        if len(calls) == 1:
+            raise TimeoutError("redis blip")
+        stop.set()
+        return None
+
+    monkeypatch.setattr(engine.cache, "pop", pop)
+    monkeypatch.setattr(worker.time, "sleep", lambda s: None)
+    worker.run(engine, sender=None, stop=stop)
+    assert len(calls) == 2
