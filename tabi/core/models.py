@@ -55,6 +55,8 @@ class Plan:
     budget_pp: Optional[int] = None
     vibe: list[str] = field(default_factory=list)
     hotel: Optional[dict] = None
+    options: list[dict] = field(default_factory=list)   # hotel options on the table
+    votes: dict[str, int] = field(default_factory=dict)  # user_id -> option index
     notes: dict[str, str] = field(default_factory=dict)
 
     @property
