@@ -127,6 +127,7 @@ def extract(s: PlannerState) -> PlannerState:
 def reconcile(s: PlannerState) -> PlannerState:
     g = s["g"]
     p = g.plan
+    trip = (p.city, p.date_start, p.date_end)
     people = [m for m in g.members.values() if m.messages or m.committed]
 
     cities = Counter(m.city for m in people if m.city)
@@ -157,6 +158,10 @@ def reconcile(s: PlannerState) -> PlannerState:
         p.notes["budget"] = f"lowest stated ({low.name})" if len(budgets) > 1 else "stated"
 
     p.vibe = sorted({v for m in people for v in m.vibe})[:6]
+    if (p.city, p.date_start, p.date_end) != trip:
+        # Different trip: old hotel picks and market snapshot no longer apply.
+        p.hotel, p.options, p.votes = None, [], {}
+        g.market = {} if isinstance(g.market, dict) else None
     return s
 
 
