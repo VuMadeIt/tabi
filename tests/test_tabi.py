@@ -158,3 +158,18 @@ def test_hotels_wait_for_every_budget_and_refresh_on_change(engine):
     acts = say("bob", "actually 900 max")
     assert engine.load(gid).plan.budget_pp == 900
     assert any(a.hotels for a in acts) and any("900" in a.text for a in acts)
+
+
+def test_opted_out_member_does_not_block_and_trip_edit_drops_old_hotels(engine):
+    gid = "discord:44"
+    engine.start(gid, "44", "7", "japan")
+    say = lambda u, t: engine.message(gid, u, u, t)
+    for u, t in [("alice", "tokyo trip!!"), ("bob", "yes tokyo"), ("alice", "march 10-17 works"),
+                 ("bob", "march 12-20 for me"), ("alice", "i can do $1500"), ("bob", "1200 max")]:
+        say(u, t)
+    assert engine.load(gid).plan.options
+    say("carol", "i can only do march 13-17")
+    g = engine.load(gid)
+    assert g.stage == "budget" and not g.plan.options and not g.plan.votes
+    engine.set_fact(gid, "carol", "carol", committed=False)
+    assert engine.load(gid).stage == "hotel"

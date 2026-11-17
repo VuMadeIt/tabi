@@ -164,7 +164,7 @@ def reconcile(s: PlannerState) -> PlannerState:
     if (p.city, p.date_start, p.date_end) != trip:
         # Different trip: old hotel picks and market snapshot no longer apply
         # (track re-announces stage:hotel so fresh choices get fetched).
-        p.hotel, p.votes = None, {}
+        p.hotel, p.options, p.votes = None, [], {}
         g.market = {} if isinstance(g.market, dict) else None
     return s
 
