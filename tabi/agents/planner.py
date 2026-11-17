@@ -58,6 +58,7 @@ def _apply_facts(m: Member, f: dict) -> None:
         m.vibe = sorted(set(m.vibe) | {str(v).lower() for v in f["vibe"]})[:6]
     if f.get("committed") is not None:
         m.committed = bool(f["committed"])
+        m.out = not m.committed
 
 
 def _sane_window(start, end) -> bool:
@@ -176,7 +177,7 @@ def _stage(g: GroupState) -> str:
         return "where"
     if not (p.date_start and p.date_end):
         return "when"
-    if not p.budget_pp or any(m.messages and not m.budget for m in g.members.values()):
+    if not p.budget_pp or any(m.messages and not m.budget and not m.out for m in g.members.values()):
         return "budget"
     if not p.hotel:
         return "hotel"

@@ -43,6 +43,7 @@ class Member:
     city: Optional[str] = None
     vibe: list[str] = field(default_factory=list)
     committed: bool = False
+    out: bool = False
     messages: int = 0
     last_spoke: float = 0.0
 
