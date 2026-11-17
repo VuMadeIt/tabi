@@ -138,3 +138,23 @@ def test_paper_card_style_still_renders(monkeypatch):
     monkeypatch.setenv("TABI_CARD", "paper")
     g = GroupState(group_id="y")
     assert card.render(g)[:4] == b"\x89PNG"
+
+
+def test_hotels_wait_for_every_budget_and_refresh_on_change(engine):
+    gid = "discord:43"
+    engine.start(gid, "43", "7", "japan")
+    say = lambda u, t: engine.message(gid, u, u, t)
+    say("alice", "tokyo trip!!")
+    say("bob", "yes tokyo")
+    say("alice", "march 10-17 works")
+    say("bob", "march 12-20 for me")
+    say("alice", "i can do $1500")
+    assert engine.load(gid).stage == "budget"
+    assert engine.load(gid).blockers == ["bob"]
+    acts = say("bob", "1200 max")
+    g = engine.load(gid)
+    assert g.stage == "hotel" and g.plan.budget_pp == 1200
+    assert any(a.hotels for a in acts)
+    acts = say("bob", "actually 900 max")
+    assert engine.load(gid).plan.budget_pp == 900
+    assert any(a.hotels for a in acts) and any("900" in a.text for a in acts)

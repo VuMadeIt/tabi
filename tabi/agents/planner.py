@@ -41,6 +41,7 @@ class PlannerState(TypedDict, total=False):
     settings: Any
     progress: list[str]
     extracted: bool
+    before: dict
 
 
 def _apply_facts(m: Member, f: dict) -> None:
@@ -128,6 +129,7 @@ def reconcile(s: PlannerState) -> PlannerState:
     g = s["g"]
     p = g.plan
     trip = (p.city, p.date_start, p.date_end)
+    s["before"] = {"city": p.city, "dates": (p.date_start, p.date_end), "budget": p.budget_pp}
     people = [m for m in g.members.values() if m.messages or m.committed]
 
     cities = Counter(m.city for m in people if m.city)
@@ -159,8 +161,9 @@ def reconcile(s: PlannerState) -> PlannerState:
 
     p.vibe = sorted({v for m in people for v in m.vibe})[:6]
     if (p.city, p.date_start, p.date_end) != trip:
-        # Different trip: old hotel picks and market snapshot no longer apply.
-        p.hotel, p.options, p.votes = None, [], {}
+        # Different trip: old hotel picks and market snapshot no longer apply
+        # (track re-announces stage:hotel so fresh choices get fetched).
+        p.hotel, p.votes = None, {}
         g.market = {} if isinstance(g.market, dict) else None
     return s
 
@@ -173,7 +176,7 @@ def _stage(g: GroupState) -> str:
         return "where"
     if not (p.date_start and p.date_end):
         return "when"
-    if not p.budget_pp:
+    if not p.budget_pp or any(m.messages and not m.budget for m in g.members.values()):
         return "budget"
     if not p.hotel:
         return "hotel"
@@ -203,8 +206,8 @@ def _blockers(g: GroupState, stage: str) -> list[str]:
 
 def track(s: PlannerState) -> PlannerState:
     g = s["g"]
-    before = {"stage": g.stage, "city": g.plan.city, "dates": (g.plan.date_start, g.plan.date_end),
-              "budget": g.plan.budget_pp}
+    before = {"stage": g.stage, **(s.get("before") or {"city": g.plan.city,
+              "dates": (g.plan.date_start, g.plan.date_end), "budget": g.plan.budget_pp})}
     stage = _stage(g)
     progress: list[str] = list(s.get("progress") or [])
     if g.plan.city and g.plan.city != before["city"]:
@@ -215,6 +218,8 @@ def track(s: PlannerState) -> PlannerState:
         progress.append("budget")
     if STAGES.index(stage) > STAGES.index(before["stage"]):
         progress.append(f"stage:{stage}")
+    elif stage == "hotel" and {"city", "dates", "budget"} & set(progress):
+        progress.append("stage:hotel")      # plan changed: refresh hotel choices
     g.stage = stage
     g.blockers = _blockers(g, stage)
     s["progress"] = progress
