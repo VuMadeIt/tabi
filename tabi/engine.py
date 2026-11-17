@@ -223,7 +223,7 @@ class Engine:
             if p.city and p.date_start and (not g.market or now - g.market.get("ts", 0) >= MARKET_EVERY_S):
                 cur = hotels.market(p.city, p.date_start, p.date_end, self._guests(g), g.group_id)
                 if cur:
-                    if g.market:
+                    if g.market and bool(g.market.get("live")) == bool(cur.get("live")):
                         before = g.pet.physical
                         g.pet.physical = health.market_delta(g.pet.physical, g.market, cur)
                         if g.pet.physical <= before - 5:
