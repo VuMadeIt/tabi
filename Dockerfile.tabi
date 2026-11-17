@@ -8,6 +8,7 @@ COPY requirements-tabi.txt .
 RUN pip install --no-cache-dir -r requirements-tabi.txt
 COPY tabi tabi
 COPY assets/sticker assets/sticker
+COPY assets/kawaii assets/kawaii
 COPY assets/fonts assets/fonts
 ENV PYTHONUNBUFFERED=1
 ENTRYPOINT ["python", "-m", "tabi"]
