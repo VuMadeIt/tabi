@@ -173,3 +173,16 @@ def test_opted_out_member_does_not_block_and_trip_edit_drops_old_hotels(engine):
     assert g.stage == "budget" and not g.plan.options and not g.plan.votes
     engine.set_fact(gid, "carol", "carol", committed=False)
     assert engine.load(gid).stage == "hotel"
+
+
+def test_withdrawal_that_unblocks_hotels_still_posts_choices(engine):
+    gid = "discord:45"
+    engine.start(gid, "45", "7", "japan")
+    say = lambda u, t: engine.message(gid, u, u, t)
+    for u, t in [("alice", "tokyo trip!!"), ("bob", "yes tokyo"), ("alice", "march 10-17 works"),
+                 ("bob", "march 12-20 for me"), ("alice", "i can do $1500")]:
+        say(u, t)
+    engine.set_fact(gid, "bob", "bob", committed=True)
+    acts = engine.set_fact(gid, "bob", "bob", committed=False)
+    g = engine.load(gid)
+    assert g.stage == "hotel" and g.plan.options and any(a.hotels for a in acts)

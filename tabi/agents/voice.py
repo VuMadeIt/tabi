@@ -70,6 +70,8 @@ def decide(s: VoiceState) -> VoiceState:
     intent: Optional[str] = None
 
     for e in ("hello", "booked", "died", "revived", "flake"):
+        if e == "flake" and "stage:hotel" in prog:
+            continue                        # hotel choices matter more than the guilt trip
         if e in ev:
             intent = {"died": "dead"}.get(e, e)
             break
