@@ -1,0 +1,14 @@
+# Tabi v1: Discord gateway + stateless workers.
+#   docker build -f Dockerfile.tabi -t tabi .
+#   docker run -e DISCORD_BOT_TOKEN=... -e DATABASE_URL=postgresql://... -e REDIS_URL=redis://... tabi        # bot + workers
+#   docker run ... tabi worker   # extra workers (needs REDIS_URL)
+FROM python:3.12-slim
+WORKDIR /app
+COPY requirements-tabi.txt .
+RUN pip install --no-cache-dir -r requirements-tabi.txt
+COPY tabi tabi
+COPY assets/sticker assets/sticker
+COPY assets/fonts assets/fonts
+ENV PYTHONUNBUFFERED=1
+ENTRYPOINT ["python", "-m", "tabi"]
+CMD ["all"]
