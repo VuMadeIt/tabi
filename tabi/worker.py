@@ -38,7 +38,12 @@ def run(engine: Engine, sender: RestSender, stop: threading.Event | None = None)
     stop = stop or threading.Event()
     log.info("worker started")
     while not stop.is_set():
-        ev = engine.cache.pop(timeout=1.0)
+        try:
+            ev = engine.cache.pop(timeout=1.0)
+        except Exception:
+            log.exception("queue pop failed; retrying")  # e.g. Redis timeout after a network blip
+            time.sleep(1.0)
+            continue
         if not ev:
             continue
         try:
